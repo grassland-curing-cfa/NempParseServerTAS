@@ -2706,8 +2706,8 @@ Parse.Cloud.define("applyValidationByException", function(request, response) {
 		}
 		
 		prevLocsOnlyIds = inAButNotInB(prevLocIds, currLocIds);
-		//console.log(prevLocIds.length + " previous locations that is less than or equal to " + MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS + " days old.");
-		//console.log(prevObsList.length + " previous observations that is less than or equal to " + MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS + " days old.");
+		//console.log(prevLocIds.length + " previous locations that is less than or equal to " + _MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS + " days old.");
+		//console.log(prevObsList.length + " previous observations that is less than or equal to " + _MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS + " days old.");
 		//console.log(currLocIds.length + " current locations.");
 		//console.log(prevLocsOnlyIds.length + " locations that do not exist in current week but in previous week.");
 		
@@ -3076,13 +3076,13 @@ function numDaysBetween(d1, d2) {
 };
 
 /**
- * Returns a boolean if a previous obs (ObservationStatus = 1) is MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS days older than Today.
+ * Returns a boolean if a previous obs (ObservationStatus = 1) is _MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS days older than Today.
  */
 function isObsTooOld(finalisedDate) {
 	var today = new Date();
 	var numberOfDaysBetween = numDaysBetween(today, finalisedDate);
 	
-	if (numberOfDaysBetween > MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS)
+	if (numberOfDaysBetween > _MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS)
 		return true;
 	else
 		return false;
