@@ -3,7 +3,7 @@
  * Git repo: 				https://github.com/grassland-curing-cfa/NempParseServerTAS
  * Heroku app: 				https://nemp-tas-dev.herokuapp.com/parse
  * Initial checkin date: 	22/08/2016
- * Following-up check date:	11/10/2016
+ * Following-up check date:	12/10/2016 - Updated for go ready for the recommencement of fire season 2016-2017.
  * 
  * https://nemp-tas-dev.herokuapp.com/parse/
  */
@@ -74,7 +74,7 @@ var validationRequestEmailHtml = '<!DOCTYPE html><html>' +
 		'<body>' + 
 		'<p>Good morning ' + process.env.VALIDATION_NOTIF_TO_PERSON + ',</p>' + 
 		'<br>' + 
-		'<p>Grassland curing data for Tasmania is now ready for checking. To validate the ground observations, please log into the TAS Grassland Curing Portal ' + 
+		'<p>Grassland curing data for Tasmania is now ready for checking. To validate the ground observations, please log into ' + process.env.APP_NAME + ' ' + 
 		'<a href="' + GAE_APP_URL + '">' + GAE_APP_URL + '</a>.</p>' + 
 		'<br>' + 
 		'<p>To use the system:</p>' + 
