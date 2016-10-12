@@ -1,9 +1,10 @@
 /*
- * Cloud code for "nemp-act-tas" connected to the "nemp_dev_tas" MongoLab DB deployed on Heroku
+ * Cloud code for "nemp-tas-dev" connected to the "nemp_dev_tas" MongoLab DB deployed on Heroku
  * Git repo: 				https://github.com/grassland-curing-cfa/NempParseServerTAS
  * Heroku app: 				https://nemp-tas-dev.herokuapp.com/parse
  * Initial checkin date: 	22/08/2016
- * Following-up check date:	
+ * Following-up check date:	11/10/2016
+ * 
  * https://nemp-tas-dev.herokuapp.com/parse/
  */
 
@@ -30,18 +31,18 @@ var _MAX_DAYS_ALLOWED_FOR_PREVIOUS_OBS = 30;		// An obs with the FinalisedDate o
 // Use Parse.Cloud.define to define as many cloud functions as you want.
 // For example:
 Parse.Cloud.define("hello", function(request, response) {
-	  response.success("Hello world from " + process.env.APP_NAME);
-	});
+	response.success("Hello world from " + process.env.APP_NAME);
+});
 
 Parse.Cloud.define("getDateInAEST", function(request, response) {
-    var currentDateInAEST = getTodayString(_IS_DAYLIGHT_SAVING);
-    response.success("_IS_DAYLIGHT_SAVING is " + _IS_DAYLIGHT_SAVING + "; Current Date in AEST: '" + currentDateInAEST + "'");
+	var currentDateInAEST = getTodayString(_IS_DAYLIGHT_SAVING);
+	response.success("_IS_DAYLIGHT_SAVING is " + _IS_DAYLIGHT_SAVING + "; Current Date in AEST: '" + currentDateInAEST + "'");
 });
 
 Parse.Cloud.define("testMailgunJS", function(request, response) {
-	  var mailgun = require('mailgun-js')({apiKey: MG_KEY, domain: MG_DOMAIN});
-	  
-	  var data = {
+	var mailgun = require('mailgun-js')({apiKey: MG_KEY, domain: MG_DOMAIN});
+
+	var data = {
 	    from: 'Excited User <me@samples.mailgun.org>',
 	    to: 'a.chen@cfa.vic.gov.au',
 	    bcc: 'tttchen2004@yahoo.com',
@@ -100,7 +101,7 @@ var validationRequestEmailHtml = '<!DOCTYPE html><html>' +
 		'<td><p style="color:#C00000; font-weight: bold;">NEMP Grassland Curing Team</p><p>CFA HQ - Fire & Emergency Management - 8 Lakeside Drive, Burwood East, Victoria, 3151</p>' + 
 		'<p>E: <a href="mailto:' + CFA_NEMP_EMAIL + '" target="_top">' + CFA_NEMP_EMAIL + '</a></p></td></tr></table>' + 
 		'<br>' + 
-		'<p><i>Note: This email has been generated automatically by the TAS Grassland Curing Portal. Please do not reply to this email.</i></p>' + 
+		'<p><i>Note: This email has been generated automatically by ' + process.env.APP_NAME + '. Please do not reply to this email.</i></p>' + 
 		'</body>' + 
 		'</html>';
 
@@ -148,32 +149,32 @@ Parse.Cloud.define("sendEmailWantToBecomeObserver", function(request, response) 
 	var postcode = request.params.pc;
 	
 	var html = '<!DOCTYPE html><html>' +
-	'<body>' + 
-	'Hello Grassland Curing NEMP team,' + 
-	'<p>' + '<strong>' + firstname + ' ' +  lastname + '</strong> (<a href="mailto:' + email + '">' + email + '</a>) has signed up to become an observer. The following contact information has also been provided:</p>' + 
-	'<ul>' + 
-	'<li>Address:	' + address + '</li>' + 
-	'<li>Suburb:	' + suburb + '</li>' + 
-	'<li>State:		' + state + '</li>' + 
-	'<li>Postcode:	' + postcode + '</li>' + 
-	'</ul>' +
-	'<p>Kind Regards,</p>' + 
-	'<p>The NEMP Grassland Curing Team <a href="' + CFA_NEMP_EMAIL + '">' + CFA_NEMP_EMAIL + '</a></p>' + 
-	'<p><i>Note: This email has been generated automatically by the TAS Grassland Curing Portal. Please do not reply to this email.</i></p>' + 
-	'</body>' + 
-	'</html>';
+			'<body>' + 
+			'Hello Grassland Curing NEMP team,' + 
+			'<p>' + '<strong>' + firstname + ' ' +  lastname + '</strong> (<a href="mailto:' + email + '">' + email + '</a>) has signed up to become an observer. The following contact information has also been provided:</p>' + 
+			'<ul>' + 
+			'<li>Address:	' + address + '</li>' + 
+			'<li>Suburb:	' + suburb + '</li>' + 
+			'<li>State:		' + state + '</li>' + 
+			'<li>Postcode:	' + postcode + '</li>' + 
+			'</ul>' +
+			'<p>Kind Regards,</p>' + 
+			'<p>The NEMP Grassland Curing Team <a href="' + CFA_NEMP_EMAIL + '">' + CFA_NEMP_EMAIL + '</a></p>' + 
+			'<p><i>Note: This email has been generated automatically by ' + process.env.APP_NAME + '. Please do not reply to this email.</i></p>' + 
+			'</body>' + 
+			'</html>';
 	
 	mailgun.messages().send({
 		to: CFA_NEMP_EMAIL,
 		from: CFA_NEMP_EMAIL,
-           subject: "Express of Interest to become a grassland curing observer",
+		subject: "Express of Interest to become a grassland curing observer",
       	text: '',
       	html: html
 	}, function (error, body) {
-     	 if (error)
-  		response.error("" + error);    
-      else
-        	response.success(body);
+		if (error)
+			response.error("" + error);    
+		else
+			response.success(body);
 	});
 });
 
@@ -188,36 +189,36 @@ Parse.Cloud.define("sendEmailWelcomeNewUser", function(request, response) {
 	var email = request.params.em;
 	
 	var html = '<!DOCTYPE html><html>' +
-	'<head>' + 
-	'<meta charset="UTF-8">' + 
-	'<title>Welcome to the NEMP Grassland Curing Trial</title>' + 
-	'<style>' + 
-	'p, li {margin:0cm; margin-bottom:.0001pt; font-size:11.0pt; font-family:"Calibri","sans-serif";}' + 
-	'</style>' + 
-	'</head>' + 
-	'<body>' + 
-	'<p>Hi ' + firstname + ',' + '</p>' + '<br>' + 
-	'<p>Thank you for participating in the Tasmania grassland curing trial. This trial is supported in collaboration with the Tasmania Fire Service, Tasmania Parks and Wildlife Service, and Bureau of Meteorology, and is sponsored by the Commonwealth Attorney General&#39;s Department National Emergency Management Projects (NEMP).</p>' + '<br>' + 
-	'<p>Currently in Victoria, grassland curing is monitored operationally using a combination of satellite data and field observations, which are reported weekly by observers using a web-based data entry tool. As a trial, we are deploying the Victorian approach for Tasmania (as well as other states and territories). For online training videos, we encourage you to visit <a href="www.cfa.vic.gov.au/grass">www.cfa.vic.gov.au/grass</a>.</p>' + '<br>' + 
-	'<p>The TAS web-based data entry tool can be accessed via: <a href="' + GAE_APP_URL + '">' + GAE_APP_URL + '</a> (take note, the tool works best on Firefox, Chrome, Internet Explorer 9 or 10)</p>' + '<br>' + 
-	'<p>Your login details are as follows: </p>' + '<br>' + 
-	'<ul>' + 
-	'<li>Username: ' + username + '</li>' + 
-	'<li>Password: ' + password + '</li>' + 
-	'</ul>' + '<br>' + 
-	'<p>Once you have logged on, you can select &#34;Enter Observations&#34;, and click on your observation site. You can then enter your curing observation from the drop-down list as well as providing a height, cover and fuel load estimate. When you are finished, click &#34;Submit Observation&#34; at the bottom of the page.</p>' + '<br>' + 
-	'<p>Observations can be entered anytime during the week up until <strong>Wednesday morning at 9am</strong>. On <strong>Wednesday afternoon</strong>, a trial curing map will be published and sent to all observers via email. We hope to continue this process on a weekly basis for the duration of the fire season.</p>' + '<br>' + 
-	'<p>Once again, we thank you for your interest. Please contact us if you have any questions. We look forward to hearing from you soon.</p>' + '<br>' + 
-	'<p>Kind Regards,</p>' + 
-	'<p>The NEMP Grassland Curing Team</p>' + 
-	'<br>' + 
-	'<table><tr><td width="30%"><img src="http://www.cfa.vic.gov.au/img/logo.png" width="64" height="64" alt="CFA_LOGO" /></td>' + 
-	'<td><p style="color:#C00000; font-weight: bold;">NEMP Grassland Curing Team</p><p>CFA HQ - Fire & Emergency Management - 8 Lakeside Drive, Burwood East, Victoria, 3151</p>' + 
-	'<p>E: <a href="mailto:' + CFA_NEMP_EMAIL + '" target="_top">' + CFA_NEMP_EMAIL + '</a></p></td></tr></table>' + 
-	'<br>' + 
-	'<p><i>Note: This email has been generated automatically by the TAS Grassland Curing Portal. Please do not reply to this email.</i></p>' + 
-	'</body>' + 
-	'</html>';
+				'<head>' + 
+				'<meta charset="UTF-8">' + 
+				'<title>Welcome to the NEMP Grassland Curing Trial</title>' + 
+				'<style>' + 
+				'p, li {margin:0cm; margin-bottom:.0001pt; font-size:11.0pt; font-family:"Calibri","sans-serif";}' + 
+				'</style>' + 
+				'</head>' + 
+				'<body>' + 
+				'<p>Hi ' + firstname + ',' + '</p>' + '<br>' + 
+				'<p>Thank you for participating in the Tasmania grassland curing trial. This trial is supported in collaboration with the Tasmania Fire Service, Tasmania Parks and Wildlife Service, and Bureau of Meteorology, and is sponsored by the Commonwealth Attorney General&#39;s Department National Emergency Management Projects (NEMP).</p>' + '<br>' + 
+				'<p>Currently in Victoria, grassland curing is monitored operationally using a combination of satellite data and field observations, which are reported weekly by observers using a web-based data entry tool. As a trial, we are deploying the Victorian approach for Tasmania (as well as other states and territories). For online training videos, we encourage you to visit <a href="www.cfa.vic.gov.au/grass">www.cfa.vic.gov.au/grass</a>.</p>' + '<br>' + 
+				'<p>The Tasmania web-based data entry tool can be accessed via: <a href="' + GAE_APP_URL + '">' + GAE_APP_URL + '</a> (take note, the tool works best on Firefox, Chrome, Internet Explorer 9 or 10)</p>' + '<br>' + 
+				'<p>Your login details are as follows: </p>' + '<br>' + 
+				'<ul>' + 
+				'<li>Username: ' + username + '</li>' + 
+				'<li>Password: ' + password + '</li>' + 
+				'</ul>' + '<br>' + 
+				'<p>Once you have logged on, you can select &#34;Enter Observations&#34;, and click on your observation site. You can then enter your curing observation from the drop-down list as well as providing a height, cover and fuel load estimate. When you are finished, click &#34;Submit Observation&#34; at the bottom of the page.</p>' + '<br>' + 
+				'<p>Observations can be entered anytime during the week up until <strong>Wednesday morning at 9am</strong>. On <strong>Wednesday afternoon</strong>, a trial curing map will be published and sent to all observers via email. We hope to continue this process on a weekly basis for the duration of the fire season.</p>' + '<br>' + 
+				'<p>Once again, we thank you for your interest. Please contact us if you have any questions. We look forward to hearing from you soon.</p>' + '<br>' + 
+				'<p>Kind Regards,</p>' + 
+				'<p>The NEMP Grassland Curing Team</p>' + 
+				'<br>' + 
+				'<table><tr><td width="30%"><img src="http://www.cfa.vic.gov.au/img/logo.png" width="64" height="64" alt="CFA_LOGO" /></td>' + 
+				'<td><p style="color:#C00000; font-weight: bold;">NEMP Grassland Curing Team</p><p>CFA HQ - Fire & Emergency Management - 8 Lakeside Drive, Burwood East, Victoria, 3151</p>' + 
+				'<p>E: <a href="mailto:' + CFA_NEMP_EMAIL + '" target="_top">' + CFA_NEMP_EMAIL + '</a></p></td></tr></table>' + 
+				'<br>' + 
+				'<p><i>Note: This email has been generated automatically by ' + process.env.APP_NAME + '. Please do not reply to this email.</i></p>' + 
+				'</body>' + 
+				'</html>';
 	
 	mailgun.messages().send({
 		  to: email,
@@ -253,7 +254,7 @@ Parse.Cloud.define("sendEmailFinalisedDataToUsers", function(request, response) 
 			if (status) {	// only select active users
 				var user = results[i].get("user");
 				var email = user.get("email");
-				//console.log("Appending " + email);
+				console.log("Appending email: " + email);
 				recipientList = recipientList + email + ";";
 			}
 		}
@@ -264,31 +265,31 @@ Parse.Cloud.define("sendEmailFinalisedDataToUsers", function(request, response) 
 		var strToday = getTodayString(_IS_DAYLIGHT_SAVING);
 		
 		var html = '<!DOCTYPE html><html>' +
-			'<body>' + 
-			'Hello all,' + 
-			'<p>The Tasmania grassland curing map has been updated for the ' + strToday + '. To view the map, please click <a href="' + GAE_APP_URL + '/viscaModel?action=grasslandCuringMap">here</a>.</p>' + 
-			'<p>Kind Regards,</p>' + 
-			'<p>The NEMP Grassland Curing Team <a href="' + CFA_NEMP_EMAIL + '">' + CFA_NEMP_EMAIL + '</a></p>' + 
-			'<p><i>Note: This email has been generated automatically by TAS Grassland Curing Portal. Please do not reply to this email.</i></p>' + 
-			'</body>' + 
-			'</html>';
+				'<body>' + 
+				'Hello all,' + 
+				'<p>The Tasmania grassland curing map has been updated for the ' + strToday + '. To view the map, please click <a href="' + GAE_APP_URL + '/viscaModel?action=grasslandCuringMap">here</a>.</p>' + 
+				'<p>Kind Regards,</p>' + 
+				'<p>The NEMP Grassland Curing Team <a href="' + CFA_NEMP_EMAIL + '">' + CFA_NEMP_EMAIL + '</a></p>' + 
+				'<p><i>Note: This email has been generated automatically by ' + process.env.APP_NAME + '. Please do not reply to this email.</i></p>' + 
+				'</body>' + 
+				'</html>';
 		
 		mailgun.messages().send({
-      	  to: CFA_NEMP_EMAIL,
-		  //bcc: recipientList,
-		  from: CFA_NEMP_EMAIL,
-		  subject: "Tasmania Grassland Curing Map - " + strToday,
-		  text: "",
-		  html: html
+			to: CFA_NEMP_EMAIL,
+			bcc: recipientList,
+			from: CFA_NEMP_EMAIL,
+			subject: "Tasmania Grassland Curing Map - " + strToday,
+			text: "",
+			html: html
       	}, function (error, body) {
-        	  if (error)
-            response.error("" + error);    
-        	  else
-            response.success("Email sent. Details: " + JSON.stringify(body));
+      		if (error)
+      			response.error("" + error);    
+      		else
+      			response.success("Email sent. Details: " + JSON.stringify(body));
       	});
 		//response.success(emailList);	
 	}, function(error) {
-	    response.error("GCUR_MMR_USER_ROLE table lookup failed");
+		response.error("GCUR_MMR_USER_ROLE table lookup failed");
 	});
 });
 
