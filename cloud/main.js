@@ -1,13 +1,10 @@
 /*
  * Cloud code for "nemp-tas-dev" connected to the "nemp_dev_tas" MongoLab DB deployed on Heroku
  * Git repo: 				https://github.com/grassland-curing-cfa/NempParseServerTAS
- * Heroku app: 				https://nemp-tas-dev.herokuapp.com/parse
  * Initial checkin date: 	22/08/2016
  * Following-up check date:	12/10/2016 - Updated for go ready for the recommencement of fire season 2016-2017.
  * 							16/11/2016 - NEMP-1-150: added request.user to beforeSave and afterSave triggers for GCUR_OBSERVATION & GCUR_LOCATION classes
-
- * 
- * https://nemp-tas-dev.herokuapp.com/parse/
+ *							13/12/2016 - NEMP-1-151: Remove unnecessary Parse.User.logIn(SUPERUSER, SUPERPASSWORD) and Parse.Cloud.useMasterKey() in the Cloud function
  */
 
 var _ = require('underscore');
@@ -19,7 +16,7 @@ var NULL_VAL_DBL = -1.0;
 
 var APP_ID = process.env.APP_ID;
 var MASTER_KEY = process.env.MASTER_KEY;
-var SERVER_URL = process.env.SERVER_URL;			// https://nemp-tas-dev.herokuapp.com/parse
+var SERVER_URL = process.env.SERVER_URL;
 
 var MG_DOMAIN = process.env.MG_DOMAIN;
 var MG_KEY = process.env.MG_KEY;
@@ -226,12 +223,12 @@ Parse.Cloud.define("sendEmailWelcomeNewUser", function(request, response) {
 		  to: email,
 		  bcc: CFA_NEMP_EMAIL,
 		  from: CFA_NEMP_EMAIL,
-		  subject: "Welcome to the Tasmania Grassland Curing Trial",
+		  subject: "Welcome to the Tasmania " + process.env.APP_NAME,
 		  text: "",
 		  html: html
 	    }, function (error, body) {
 	      if (error)
-	        response.error("" + error);    
+	        response.error("" + error);
 	      else
 	        response.success(body);
 	    });
@@ -241,13 +238,12 @@ Parse.Cloud.define("sendEmailWelcomeNewUser", function(request, response) {
 Parse.Cloud.define("sendEmailFinalisedDataToUsers", function(request, response) {
 	// get all active observers, validators and administrators
 	var recipientList = CFA_GL_EMAIL + ";";
-	Parse.Cloud.useMasterKey();
 	
 	var queryMMR = new Parse.Query("GCUR_MMR_USER_ROLE");
 	queryMMR.include("user");
 	//queryMMR.include("role");
 	queryMMR.limit(1000);
-	queryMMR.find().then(function(results) {
+	queryMMR.find({ useMasterKey: true }).then(function(results) {
 		// results is array of GCUR_MMR_USER_ROLE records
 		for (var i = 0; i < results.length; i++) {
 			//var role = results[i].get("role");
@@ -298,13 +294,12 @@ Parse.Cloud.define("sendEmailFinalisedDataToUsers", function(request, response) 
 //export a list of email addresses for all active users
 Parse.Cloud.define("exportEmailsForActiveUsers", function(request, response) {
 	var recipientList = "";
-	Parse.Cloud.useMasterKey();
 	
 	var queryMMR = new Parse.Query("GCUR_MMR_USER_ROLE");
 	queryMMR.include("user");
 	queryMMR.include("role");
 	queryMMR.limit(1000);
-	queryMMR.find().then(function(results) {
+	queryMMR.find({ useMasterKey: true }).then(function(results) {
 		// results is array of GCUR_MMR_USER_ROLE records
 		for (var i = 0; i < results.length; i++) {
 			var role = results[i].get("role");
@@ -330,13 +325,12 @@ Parse.Cloud.define("exportEmailsForActiveUsers", function(request, response) {
 // export a list of email addresses for recipients that receive the finalsed map email
 Parse.Cloud.define("exportEmailsForManualFinalMapEmail", function(request, response) {
 	var recipientList = CFA_GL_EMAIL + ";";
-	Parse.Cloud.useMasterKey();
 	
 	var queryMMR = new Parse.Query("GCUR_MMR_USER_ROLE");
 	queryMMR.include("user");
 	queryMMR.include("role");
 	queryMMR.limit(1000);
-	queryMMR.find().then(function(results) {
+	queryMMR.find({ useMasterKey: true }).then(function(results) {
 		// results is array of GCUR_MMR_USER_ROLE records
 		for (var i = 0; i < results.length; i++) {
 			var role = results[i].get("role");
@@ -404,54 +398,11 @@ Parse.Cloud.define("countOfObservations", function(request, response) {
   });
 });
 
-/*
-Parse.Cloud.define("getLocationFromId", function(request, response) {
-  // Log-in required dued to ACL set on GCUR_LOCATION table with Roles and Users
-  Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {  
-    var query = new Parse.Query("GCUR_LOCATION");
-    query.equalTo("LocationId", request.params.locationId);
-    return query.find();
-  }).then(function(results) {
-    response.success(results);	
-  }, function(error) {
-    response.error("Location table lookup failed");
-  });
-});
-
-Parse.Cloud.define("getLocationNameFromId", function(request, response) {
-  // Log-in required dued to ACL set on GCUR_LOCATION table with Roles and Users
-  Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-    var query = new Parse.Query("GCUR_LOCATION");
-    query.equalTo("LocationId", request.params.locationId);
-    return query.find();
-  }).then(function(results) {
-    response.success(results[0].get("LocationName"));	
-  }, function(error) {
-    response.error("Location table lookup failed");
-  });
-});
-*/
-
-Parse.Cloud.define("getUsernameFromId", function(request, response) {
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		var queryUser = new Parse.Query(Parse.User);
-		queryUser.equalTo("objectId", request.params.objectId);
-		return queryUser.first();
-	  }).then(function(usr) {
-	    response.success(usr.get("username"));	
-	  }, function(error) {
-	    response.error("User table lookup failed");
-	  });
-});
-
 Parse.Cloud.define("isLocationNameExist", function(request, response) {
-  // Log-in required dued to ACL set on GCUR_LOCATION table with Roles and Users
-  Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-    var query = new Parse.Query("GCUR_LOCATION");
-    query.equalTo("LocationName", request.params.locationName);
-    query.limit(1000);
-    return query.find();
-  }).then(function(results) {
+  var query = new Parse.Query("GCUR_LOCATION");
+  query.equalTo("LocationName", request.params.locationName);
+  query.limit(1000);
+  query.find().then(function(results) {
     if (results.length > 0)
       response.success(results[0]);
     else
@@ -464,13 +415,11 @@ Parse.Cloud.define("isLocationNameExist", function(request, response) {
 Parse.Cloud.define("deleteUserByUsername", function(request, response) {
 	var username = request.params.username;
 	
-	Parse.Cloud.useMasterKey();
-	
 	// Check if the username exists before it gets deleted
 	var queryUser = new Parse.Query(Parse.User);
 	queryUser.equalTo("username", username);
 	queryUser.limit(1000);
-	queryUser.find().then(function(results) {
+	queryUser.find({ useMasterKey: true }).then(function(results) {
 		console.log(results.length + " _USER found for username [" + username + "]. Ready to be destroyed by the function deleteUserByUsername!");
 		return Parse.Object.destroyAll(results);
 	}, function(error) {
@@ -484,112 +433,6 @@ Parse.Cloud.define("deleteUserByUsername", function(request, response) {
 		response.success(false);
 	});
 });
-
-/*
-Parse.Cloud.define("getRolesForUserObjectId", function(request, response) {
-  var userObjectId = null;
-  var roleName = null;
-  var roleArray = [];
-
-  // Log-in required dued to class-level security set on ROLE table
-  Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-    var queryUser = new Parse.Query(Parse.User);
-    queryUser.equalTo("objectId", request.params.objectId);
-    return queryUser.first();
-  }).then(function(usr) {
-    if (usr != undefined) {
-        // username has been found
-		userObjectId = usr.id;
-		var queryRole = new Parse.Query(Parse.Role);
-		return queryRole.find();
-    } else {
-		// username not found and a Promise is thrown out
-		return Parse.Promise.error("There was an error in finding the user.");
-    }
-  }).then(function(results) {
-    //response.success(roles.length);
-    // Create a trivial resolved promise as a base case.
-    var promises = [];
-    _.each(results, function(result) {
-        // query for all Users that have been granted the each role
-        var queryUsersInRole = result.getUsers().query();
-        
-        promises.push(queryUsersInRole.find(
-        {
-            success : function(usrs) {        	
-                for(var j = 0; j < usrs.length; j ++) {
-        		    if (userObjectId == usrs[j].id) {
-        		    	roleArray.push(result);
-        			    break;
-        		    }
-        	    }
-            },
-            error : function(error) {
-                return Parse.Promise.error("There was an error in finding users in a Role.");
-            }
-        }));
-    });
-    // Return a new promise that is resolved when all of the deletes are finished.
-    return Parse.Promise.when(promises);
-  }).then(function() {
-    // Every comment was deleted.
-    response.success(roleArray);
-  }, function(error) {
-    response.error(error);
-  });
-});
-
-Parse.Cloud.define("getMaxLocationId", function(request, response) {
-  // Log-in required dued to ACL set on GCUR_LOCATION table with Roles and Users
-  Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-    var query = new Parse.Query("GCUR_LOCATION");
-    return query.find();
-  }).then(function(results) {
-    var max = 0;
-    for (var i = 0; i < results.length; ++i) {
-	   var id = parseInt(results[i].get("LocationId"));
-        if (id > max) {
-		max = id;
-	  }
-    }
-
-    response.success(max);	
-  }, function(error) {
-    response.error("Location table lookup failed");
-  });
-});
-
-Parse.Cloud.beforeSave("GCUR_LOCATION", function(request, response) {
-  Parse.Cloud.run("getMaxLocationId", {}, {
-    success: function(result) {
-      // result is the max number of location id
-
-	var query = new Parse.Query("GCUR_LOCATION");
-	query.equalTo("objectId", request.object.id);
-	query.find({
-  		success: function(results) {
-    		// The object was retrieved successfully.
-
-  			// Only when a new location is created, LocationId is amended!!!
-			if (results.length == 0) {
-				request.object.set("LocationId", result + 1);
-			}
-			
-      		response.success();
-  		},
-  		error: function(error) {
-    		// The object was not retrieved successfully.
-    		// error is a Parse.Error with an error code and message.
-  			response.error("Table GCUR_LOCATION lookup execution failed");
-  		}
-	});
-    },
-    error: function(error) {
-      response.error("Cloud function getMaxLocationId execution failed");
-    }
-  });
-});
-*/
 
 /**
  * before a new Observation is added
@@ -680,12 +523,10 @@ Parse.Cloud.afterSave("GCUR_LOCATION", function(request, response) {
  *  when a GCUR_LOCATION is deleted
  */
 Parse.Cloud.afterDelete("GCUR_LOCATION", function(request) {
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		query = new Parse.Query("GCUR_OBSERVATION");
-		query.equalTo("Location", request.object);
-		query.limit(1000);
-		return query.find();
-	}).then(function(observations) {
+	query = new Parse.Query("GCUR_OBSERVATION");
+	query.equalTo("Location", request.object);
+	query.limit(1000);
+	query.find().then(function(observations) {
 		return Parse.Object.destroyAll(observations);
 	}).then(function() {
 		console.log('All associated GCUR_OBSERVATION records for the deleted GCUR_LOCATION have been deleted.');
@@ -715,12 +556,11 @@ Parse.Cloud.afterDelete("GCUR_LOCATION", function(request) {
 Parse.Cloud.afterDelete(Parse.User, function(request) {
 	var mmrObsvrLocsCount;
 	var mmrUsrRoleCount;
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		query = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
-		query.equalTo("Observer", request.object);
-		query.limit(1000);
-		return query.find();
-	}).then(function(mmr_obsvr_locs) {
+	
+	query = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
+	query.equalTo("Observer", request.object);
+	query.limit(1000);
+	query.find().then(function(mmr_obsvr_locs) {
 		mmrObsvrLocsCount = mmr_obsvr_locs.length;
 		return Parse.Object.destroyAll(mmr_obsvr_locs);
 	}).then(function() {
@@ -811,8 +651,6 @@ Parse.Cloud.beforeDelete("GCUR_FINALISEMODEL", function(request, response) {
 Parse.Cloud.define("deleteRunModelById", function(request, response) {
 	var objectId = request.params.objectId;
 	
-	Parse.Cloud.useMasterKey();
-	
 	var queryRunModel = new Parse.Query("GCUR_RUNMODEL");
 	queryRunModel.equalTo("objectId", objectId);
 	queryRunModel.limit(1000);
@@ -847,8 +685,6 @@ Parse.Cloud.define("deleteRunModelById", function(request, response) {
  * Retrieve a list RunModel jobs by a list of ObjectIds
  */
 Parse.Cloud.define("getRunModelDetails", function(request, response) {
-	Parse.Cloud.useMasterKey();
-	
 	var inRunModelObjList = [];
 	var outRunModelDetails = [];
 	
@@ -862,7 +698,7 @@ Parse.Cloud.define("getRunModelDetails", function(request, response) {
 	queryRunModel.containedIn("objectId", inRunModelObjList);
 	queryRunModel.include("submittedBy");	// Retrieve _USER
 	queryRunModel.limit(1000);
-	queryRunModel.find().then(function(results) {
+	queryRunModel.find({ useMasterKey: true }).then(function(results) {
 		for (var j = 0; j < results.length; j ++) {
 			var objectId = results[j].id;
 			var createdAt = results[j].createdAt;
@@ -872,7 +708,6 @@ Parse.Cloud.define("getRunModelDetails", function(request, response) {
 			var status = results[j].get("status");
 			var viscaFile = results[j].get("viscaFile");
 			var resolution = results[j].get("resolution");
-			
 			
 			var submittedBy = results[j].get("submittedBy");
 	        var userObjId = submittedBy.id;
@@ -900,64 +735,13 @@ Parse.Cloud.define("getRunModelDetails", function(request, response) {
 	});
 });
 
-Parse.Cloud.define("getAllSimpleMMRUserRole", function(request, response) {
-  Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-	  var query = new Parse.Query("GCUR_MMR_USER_ROLE");
-	  query.include("user");
-	  query.include("role");
-	  query.limit(1000);
-	  return query.find();
-  }).then(function(results) {
-      var mmrUserRoles = []
-      for (var i = 0; i < results.length; i++) {
-        // This does not require a network access.
-        var user = results[i].get("user");
-        var username = user.get("username");
-        var userObjId = user.id;
-        var firstname = user.get("firstName");
-        var lastname = user.get("lastName");
-        var email = user.get("email");
-        var simpleUser = {
-		"objectId": userObjId,
-		"username": username,
-		"firstName": firstname,
-		"lastName": lastname,
-		"email": email
-	   };
-
-	   var role = results[i].get("role");
-        var roleName = role.get("name");
-        var roleObjId = role.id;
-        var simpleRole = {
-		"objectId": roleObjId,
-		"roleName": roleName
-	   };
-
-	   var status = results[i].get("status");
-
-	   var mmrUserRole = {
-		"simpleUser": simpleUser,
-		"simpleRole": simpleRole,
-		"status": status
-   	   };
-
-        mmrUserRoles.push(mmrUserRole);
-      }
-      response.success(mmrUserRoles);
-    }, function(error) {
-      response.error("GCUR_MMR_USER_ROLE lookup failed");
-  });
-});
-
 Parse.Cloud.define("getAllSimpleMMRUserRoleForRole", function(request, response) {
   var roleObjectId = request.params.objectId;
   var roleName = null;
   
-  Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-	  var queryRole = new Parse.Query(Parse.Role);
-	  queryRole.equalTo("objectId", roleObjectId);
-	  return queryRole.find();
-  }).then(function (roles) {
+  var queryRole = new Parse.Query(Parse.Role);
+  queryRole.equalTo("objectId", roleObjectId);
+  queryRole.find().then(function (roles) {
 	  roleName = roles[0].get("name");
 	  
 	  var queryMMR = new Parse.Query("GCUR_MMR_USER_ROLE");
@@ -965,7 +749,7 @@ Parse.Cloud.define("getAllSimpleMMRUserRoleForRole", function(request, response)
 	  queryMMR.include("user");
 	  queryMMR.include("role");
 	  queryMMR.limit(1000);
-	  return queryMMR.find();
+	  return queryMMR.find({ useMasterKey: true });
   }).then(function(results) {
 	  var userStatsusForRole = null;
       var userStatusList = []
@@ -1017,18 +801,16 @@ Parse.Cloud.define("getAllSimpleMMRUserRoleForUser", function(request, response)
 	var userObjectId = request.params.objectId;
 	var userName = null;
 	
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		  var queryUser = new Parse.Query(Parse.User);
-		  queryUser.equalTo("objectId", userObjectId);
-		  return queryUser.first();
-	}).then(function (user) {
+	var queryUser = new Parse.Query(Parse.User);
+	queryUser.equalTo("objectId", userObjectId);
+	queryUser.first({ useMasterKey: true }).then(function (user) {
 		  userName = user.get("username");
 		  var queryMMR = new Parse.Query("GCUR_MMR_USER_ROLE");
 		  // Include the post data with each comment
 		  queryMMR.include("user");
 		  queryMMR.include("role");
 		  queryMMR.limit(1000);
-		  return queryMMR.find();
+		  return queryMMR.find({ useMasterKey: true });
 	}).then(function(results) {
 		  var roleStatsusForUser = null;
 	      var roleStatusList = []
@@ -1066,273 +848,6 @@ Parse.Cloud.define("getAllSimpleMMRUserRoleForUser", function(request, response)
 		  response.error("Error: " + error.code + " " + error.message);
 	  });
 	});
-
-Parse.Cloud.define("isMMRUserRoleExist", function(request, response) {
-	var userObjId = request.params.userObjId;
-	var roleObjId = request.params.roleObjId;
-	var isAlreadyExist = false;
-	var MMRUserRoleObjId = null;
-	
-	// Log-in required dued to class-level security set on USER table
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		var query = new Parse.Query("GCUR_MMR_USER_ROLE");
-		query.include("user");
-		query.include("role");
-		query.limit(1000);
-		return query.find();
-	}).then(function(results) {
-		for (var i = 0; i < results.length; i++) {
-	        var user = results[i].get("user");
-	        var userObjectId = user.id;
-	        
-	        if (userObjectId == userObjId) {
-	        	var role = results[i].get("role");
-	            var roleObjectId = role.id;
-	            
-	            if (roleObjectId == roleObjId) {
-	            	isAlreadyExist = true;
-	            	MMRUserRoleObjId = results[i].id;
-	            	break;
-	            }
-	        }
-		}
-		
-		console.log("MMR_USER_ROLE: " + userObjId + " - " + roleObjId + " exists ? " + isAlreadyExist);
-		
-		var returnedJSON = {
-			"isAlreadyExist" : isAlreadyExist,
-			"MMRUserRoleObjId" : MMRUserRoleObjId
-		}
-		
-		response.success(returnedJSON);
-	}, function(error) {
-		response.error("Error: " + error.code + " " + error.message);
-	});
-});
-
-Parse.Cloud.define("getAllLocationsForObserver", function(request, response) {
-	var userObjectId = request.params.objectId;
-	var userName = null;
-	// Log-in required dued to class-level security set on USER table
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		  var queryUser = new Parse.Query(Parse.User);
-		  queryUser.equalTo("objectId", userObjectId);
-		  return queryUser.first();
-	}).then(function (user) {
-		  userName = user.get("username");
-		  console.log("userName - " + userName);
-		  var queryMMR = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
-		  // Include the post data with each comment
-		  queryMMR.include("Observer");
-		  queryMMR.include("Location");
-		  queryMMR.limit(1000);
-		  return queryMMR.find();
-	}).then(function(results) {
-		  var locationsForUser = null;
-	      var locationList = [];
-	      
-	      for (var i = 0; i < results.length; i++) {
-	        var user = results[i].get("Observer");
-	        var usrObjId = user.id;
-	        if (usrObjId == userObjectId) {
-	        	var location = results[i].get("Location");	            
-	            locationList.push(location);
-	        }
-	      }
-	      locationsForUser = {
-	        "userObjectId": userObjectId,
-	        "userName": userName,
-	        "locationList": locationList
-	      }
-	      response.success(locationsForUser);
-	  }, function(error) {
-		  response.error("Error: " + error.code + " " + error.message);
-	  });
-	});
-
-Parse.Cloud.define("getActiveLocationsForObserver", function(request, response) {
-	var userObjectId = request.params.objectId;
-	var userName = null;
-	// Log-in required dued to class-level security set on ROLE table
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		  var queryUser = new Parse.Query(Parse.User);
-		  queryUser.equalTo("objectId", userObjectId);
-		  return queryUser.first();
-	}).then(function (user) {
-		  userName = user.get("username");
-		  console.log("userName - " + userName);
-		  var queryMMR = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
-		  // Include the post data with each comment
-		  queryMMR.include("Observer");
-		  queryMMR.include("Location");
-		  queryMMR.limit(1000);
-		  return queryMMR.find();
-	}).then(function(results) {
-		  var locationsForUser = null;
-	      var locationList = [];
-	      
-	      for (var i = 0; i < results.length; i++) {
-	        var user = results[i].get("Observer");
-	        var usrObjId = user.id;
-	        if (usrObjId == userObjectId) {
-	        	var location = results[i].get("Location");
-	            var locationStatus = location.get("LocationStatus");
-	            
-	            var SUSPENDED_STR = "suspended";
-	            if(locationStatus.toLowerCase() != SUSPENDED_STR.toLowerCase()) {	    	            
-	            	locationList.push(location);
-	            }
-	        }
-	      }
-	      locationsForUser = {
-	        "userObjectId": userObjectId,
-	        "userName": userName,
-	        "locationList": locationList
-	      }
-	      response.success(locationsForUser);
-	  }, function(error) {
-		  response.error("Error: " + error.code + " " + error.message);
-	  });
-	});
-
-Parse.Cloud.define("getObservationsForUser", function(request, response) {
-	var userObjectId = request.params.objectId;
-	var userRoleName = request.params.roleName;
-	var obsList = [];	// the output array for response
-	
-	/*
-	 {"result":[{"locationId":"Wux0DcvNEq","locationName":"DALBY","observationDetails
-		":null},{"locationId":"4n0uDuAOOj","locationName":"AMBERLEY","observationDetails
-		":{"AreaCuring":80,"Location":{"__type":"Pointer","className":"GCUR_LOCATION","o
-		bjectId":"4n0uDuAOOj"},"ObservationDate":{"__type":"Date","iso":"2015-02-17T06:1
-		6:00.000Z"},"ObservationStatus":0,"Observer":{"__type":"Pointer","className":"_U
-		ser","objectId":"iw9XjbB6a6"},"PointCuring":80,"__type":"Object","className":"GC
-		UR_OBSERVATION","createdAt":"2015-02-17T06:15:59.293Z","objectId":"PZNnRXLlAo","
-		updatedAt":"2015-02-17T06:16:37.187Z"}},{"locationId":"jiACvkSLiu","locationName
-		":"BEERBURRUM","observationDetails":{"AdminCuring":90,"AreaCuring":90,"Location"
-		:{"__type":"Pointer","className":"GCUR_LOCATION","objectId":"jiACvkSLiu"},"Obser
-		vationDate":{"__type":"Date","iso":"2015-02-17T01:57:00.000Z"},"ObservationStatu
-		s":0,"Observer":{"__type":"Pointer","className":"_User","objectId":"iw9XjbB6a6"}
-		,"PointCuring":90,"__type":"Object","className":"GCUR_OBSERVATION","createdAt":"
-		2015-02-17T01:55:58.964Z","objectId":"CGoRi9cS29","updatedAt":"2015-02-17T06:16:
-		10.124Z"}}]}	  
-	 */
-	
-	// if the user is of Observers role, we check the MMR table first to fetch all Active locations associated
-	if (userRoleName == "Observers") {
-		Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-			var queryMMR = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
-			// Include the post data with each comment
-			queryMMR.include("Observer");
-			queryMMR.include("Location");
-			queryMMR.limit(1000);
-			return queryMMR.find();
-		}).then(function(results) {
-			// Create a trivial resolved promise as a base case.
-		    var promises = [];
-		    // each result is a GCUR_MMR_OBSERVER_LOCATION row
-		    _.each(results, function(result) {
-		    	var observer = result.get("Observer");
-				var observerObjId = observer.id;
-				
-				// when Observer matches the param
-				if (observerObjId == userObjectId) {
-					var location = result.get("Location");
-					var locationObjId = location.id;
-					var locationName = location.get("LocationName");
-					var locationStatus = location.get("LocationStatus");
-					
-					var obs = null;
-					
-					var SUSPENDED_STR = "suspended";
-					// Only find observation record for those locations that are not suspended
-		            if(locationStatus.toLowerCase() != SUSPENDED_STR.toLowerCase()) {
-		            	var queryObservation = new Parse.Query("GCUR_OBSERVATION");
-						queryObservation.equalTo("Location", location);	// By _Pointer
-						queryObservation.equalTo("ObservationStatus", 0);	// Current observation record
-						
-						promises.push(queryObservation.find({
-							success : function(results) {
-								// results are JavaScript Array of GCUR_OBSERVATION objects
-								var obsDetails = ( results.length > 0 ? results[0] : null);
-								
-								obs = {
-									"locationObjId" : 	locationObjId,
-									"locationName" : locationName,
-									"locationStatus" : locationStatus,
-									"currentObservationDetail" : obsDetails	// a GCUR_OBSERVATION object
-								};
-								obsList.push(obs);
-							
-							},
-							error : function(error) {
-								return Parse.Promise.error("There was an error in finding Observations.");
-							}
-						}));
-		            }
-				}
-		    });
-		    // Return a new promise that is resolved when all of the promises are resolved
-		    return Parse.Promise.when(promises);
-		}).then(function() {
-		    response.success(obsList);
-		}, function(error) {
-			  response.error("Error: " + error.code + " " + error.message);
-		});
-		
-	// If the user is not with Observers role
-	} else {
-		var queryLocation = new Parse.Query("GCUR_LOCATION");
-		queryLocation.ascending("LocationName");
-		queryLocation.limit(1000);
-		queryLocation.find().then(function(results) {
-			// Create a trivial resolved promise as a base case.
-		    var promises = [];
-		    // each result is a GCUR_LOCATION row
-		    _.each(results, function(result) {
-					var location = result;
-					var locationObjId = location.id;
-					var locationName = location.get("LocationName");
-					var locationStatus = location.get("LocationStatus");
-					
-					var obs = null;
-					
-					var SUSPENDED_STR = "suspended";
-					// Only find observation record for those locations that are not suspended
-		            if(locationStatus.toLowerCase() != SUSPENDED_STR.toLowerCase()) {
-		            	var queryObservation = new Parse.Query("GCUR_OBSERVATION");
-						queryObservation.equalTo("Location", location);	// By _Pointer
-						queryObservation.equalTo("ObservationStatus", 0);	// Current observation record
-						
-						promises.push(queryObservation.find({
-							success : function(results) {
-								// results are JavaScript Array of GCUR_OBSERVATION objects
-								var obsDetails = ( results.length > 0 ? results[0] : null);
-								
-								obs = {
-									"locationObjId" : 	locationObjId,
-									"locationName" : locationName,
-									"locationStatus" : locationStatus,
-									"currentObservationDetail" : obsDetails	// a GCUR_OBSERVATION object
-								};
-								obsList.push(obs);
-							
-							},
-							error : function(error) {
-								return Parse.Promise.error("There was an error in finding Observations.");
-							}
-						}));
-		            }
-		    });
-		    // Return a new promise that is resolved when all of the promises are resolved
-		    return Parse.Promise.when(promises);
-		}).then(function() {
-		    response.success(obsList);
-		}, function(error) {
-			  response.error("Error: " + error.code + " " + error.message);
-		});
-	}	
-});
 
 Parse.Cloud.define("getSimpleObservationsForUser", function(request, response) {
 	var ALL_DISTRICT = "9999";		// If the districtNo == 9999, return all active locatons.
@@ -1376,14 +891,12 @@ Parse.Cloud.define("getSimpleObservationsForUser", function(request, response) {
 	
 	// if the user is of Observers role, we look into the MMR table first to fetch all Active locations associated
 	if (userRoleName == "Observers") {
-		Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-			var queryMMR = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
-			// Include the Observer and Location data with each GCUR_MMR_OBSERVER_LOCATION
-			queryMMR.include("Observer");
-			queryMMR.include("Location");
-			queryMMR.limit(1000);
-			return queryMMR.find();
-		}).then(function(results) {
+		var queryMMR = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
+		// Include the Observer and Location data with each GCUR_MMR_OBSERVER_LOCATION
+		queryMMR.include("Observer");
+		queryMMR.include("Location");
+		queryMMR.limit(1000);
+		queryMMR.find({ useMasterKey: true }).then(function(results) {
 			// Create a trivial resolved promise as a base case.
 		    var promises = [];
 		    // each result is a GCUR_MMR_OBSERVER_LOCATION row
@@ -1636,8 +1149,6 @@ Parse.Cloud.define("getSimpleObservationsForUser", function(request, response) {
 });
 
 Parse.Cloud.define("getCountOfLocsForDistricts", function(request, response) {
-	Parse.Cloud.useMasterKey();
-	
 	console.log("Triggering the Cloud Function 'getCountOfLocsForDistricts'");
 	
 	var districtList = [];	// the output array for response
@@ -1700,11 +1211,9 @@ Parse.Cloud.define("getCurrPrevSimpleObservationsForLocation", function(request,
 	var locObjectId = request.params.locObjectId;
 	var locName = null;
 	
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		var queryLocation = new Parse.Query("GCUR_LOCATION");
-		queryLocation.equalTo("objectId", locObjectId);
-		return queryLocation.first();
-	}).then(function(result){
+	var queryLocation = new Parse.Query("GCUR_LOCATION");
+	queryLocation.equalTo("objectId", locObjectId);
+	queryLocation.first().then(function(result){
 		var location = result;		
 		locName = location.get("LocationName");
 		locStatus = location.get("LocationStatus");
@@ -1720,7 +1229,7 @@ Parse.Cloud.define("getCurrPrevSimpleObservationsForLocation", function(request,
 		queryObservation.notEqualTo("ObservationStatus", 2);	// excludes the archived observation
 		queryObservation.ascending("ObservationStatus");	// this enables fetching current(0) and previous(1) observations
 		
-		return queryObservation.find();
+		return queryObservation.find({ useMasterKey: true });
 	}, function(error) {
 		response.error("GCUR_LOCATION table lookup failed");
 	}).then(function(results) {
@@ -2007,13 +1516,10 @@ Parse.Cloud.define("getAllLocationsWithLinkedStatusForObservers", function(reque
 	var lastName = null;
 	var allLocs = [];
 	
-	// Log-in required dued to class-level security set on USER table
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		var query = new Parse.Query("GCUR_LOCATION");
-		query.ascending("LocationName");
-		query.limit(1000);
-	    return query.find();
-	}).then(function (locations) {
+	var query = new Parse.Query("GCUR_LOCATION");
+	query.ascending("LocationName");
+	query.limit(1000);
+	query.find().then(function (locations) {
 		console.log("All locations count: " + locations.length);
 		for (var i = 0; i < locations.length; i++) {
 			var loc = {
@@ -2029,7 +1535,7 @@ Parse.Cloud.define("getAllLocationsWithLinkedStatusForObservers", function(reque
 		// Find the user
 		var queryUser = new Parse.Query(Parse.User);
 		queryUser.equalTo("objectId", userObjectId);
-		return queryUser.first();
+		return queryUser.first({ useMasterKey: true });
 	}).then(function (user) {
 		  userName = user.get("username");
 		  firstName = user.get("firstName");
@@ -2040,7 +1546,7 @@ Parse.Cloud.define("getAllLocationsWithLinkedStatusForObservers", function(reque
 		  queryMMR.include("Observer");
 		  queryMMR.include("Location");
 		  queryMMR.limit(1000);
-		  return queryMMR.find();
+		  return queryMMR.find({ useMasterKey: true });
 	}).then(function(results) {
 		  var locationsForUser = null;
 	      
@@ -2082,13 +1588,11 @@ Parse.Cloud.define("updateLinkedLocsForObserverByIds", function(request, respons
 		newLinkedLocsIds.push(request.params.linkedLocsIds[i]["locId"]);
 	}
 	
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		var queryMMR = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
-		queryMMR.include("Observer");
-		queryMMR.include("Location");
-		queryMMR.limit(1000);
-		return queryMMR.find();
-	}).then(function(results) {
+	var queryMMR = new Parse.Query("GCUR_MMR_OBSERVER_LOCATION");
+	queryMMR.include("Observer");
+	queryMMR.include("Location");
+	queryMMR.limit(1000);
+	queryMMR.find({ useMasterKey: true }).then(function(results) {
 		for (var i = 0; i < results.length; i ++) {
 			var user = results[i].get("Observer");
 	        if (user.id == observerObjId) {
@@ -2119,7 +1623,7 @@ Parse.Cloud.define("updateLinkedLocsForObserverByIds", function(request, respons
 			MMRToBeSaved.push(mmr_obsvr_loc);
 		}
 		
-		return Parse.Object.saveAll(MMRToBeSaved);
+		return Parse.Object.saveAll(MMRToBeSaved, { useMasterKey: true });
 	}, function(error) {
 		// An error occurred while deleting one or more of the objects.
 	      // If this is an aggregate error, then we can inspect each error
@@ -2167,15 +1671,13 @@ Parse.Cloud.define("acceptAllObserverCurings", function(request, response) {
 		console.log("* request.user.id = " + request.user.id);
 	}
 	
-	Parse.User.logIn(SUPERUSER, SUPERPASSWORD).then(function(user) {
-		var queryObservation = new Parse.Query("GCUR_OBSERVATION");
-		queryObservation.equalTo("ObservationStatus", 0);	// All current observation records
-		queryObservation.greaterThanOrEqualTo("AreaCuring", 0);
-		queryObservation.limit(1000);
-		// Include the Location data with each GCUR_OBSERVATION
-		queryObservation.include("Location");
-		return queryObservation.find();
-	}).then(function(results) {
+	var queryObservation = new Parse.Query("GCUR_OBSERVATION");
+	queryObservation.equalTo("ObservationStatus", 0);	// All current observation records
+	queryObservation.greaterThanOrEqualTo("AreaCuring", 0);
+	queryObservation.limit(1000);
+	// Include the Location data with each GCUR_OBSERVATION
+	queryObservation.include("Location");
+	queryObservation.find().then(function(results) {
 		var affectedObsCount = 0;
 		
 		for (var i = 0; i < results.length; i ++) {
@@ -2234,8 +1736,6 @@ Parse.Cloud.define("getAdjustedCuringForAllDistricts", function(request, respons
 	var status = request.params.status;	// "status" = 0 (current), or = 1 (previous)
 	var distAdjustedCuringList = [];	// the output array for response
 
-	Parse.Cloud.useMasterKey();
-	
 	var queryDistrict = new Parse.Query("GCUR_DISTRICT");
 	queryDistrict.ascending("DISTRICT");
 	queryDistrict.limit(1000);
@@ -2313,8 +1813,6 @@ Parse.Cloud.define("createUpdateCurrGCURAdjustDistrict", function(request, respo
 	 * }
 	 */
 	
-	Parse.Cloud.useMasterKey();
-	
 	var newAdjustByDistrictObjs = request.params.newAdjustByDistrictObjs;
 	
 	// Remove all the existing current GCUR_ADJUST_DISTRICT records from the GCUR_ADJUST_DISTRICT class
@@ -2385,8 +1883,6 @@ Parse.Cloud.define("getAdjustedCuringForLocations", function(request, response) 
 	var status = request.params.status;	// "status" = 0 (current), or = 1 (previous)
 	var locAdjustedCuringList = [];	// the output array for response
 
-	Parse.Cloud.useMasterKey();
-	
 	var queryAdjustLoc = new Parse.Query("GCUR_ADJUST_LOCATION");
 	queryAdjustLoc.ascending("location");
 	queryAdjustLoc.equalTo("status", status);		// status is user-specific, so it can be either current week or previous week
@@ -2434,8 +1930,6 @@ Parse.Cloud.define("createUpdateCurrGCURAdjustLocation", function(request, respo
 	 * 	{"status":0,"adjustedCuring":60,"adjustedDistance":72,"locObjId":"CvyfGSYArB"}]
 	 * }
 	 */
-	
-	Parse.Cloud.useMasterKey();
 	
 	var newAdjustByLocationObjs = request.params.newAdjustByLocationObjs;
 	
@@ -2516,10 +2010,9 @@ Parse.Cloud.define("createUpdateCurrGCURAdjustLocation", function(request, respo
  * - Finalise GCUR_ADJUST_LOCATION class
  */
 Parse.Cloud.define("finaliseDataOnParse", function(request, response) {
-	Parse.Cloud.useMasterKey();
 	var result = false;
 	
-	console.log("Triggering the Cloud Function 'finaliseObservationOnParse'");
+	console.log("Triggering the Cloud Function 'finaliseDataOnParse'");
 	
 	// Change all GCUR_OBSERVATION records with ObservationStatus being 1 to 2
 	queryPrev = new Parse.Query("GCUR_OBSERVATION");
@@ -2532,7 +2025,7 @@ Parse.Cloud.define("finaliseDataOnParse", function(request, response) {
 			obs.set("ObservationStatus", 2);
 		}
 		
-		return Parse.Object.saveAll(prev_observations);
+		return Parse.Object.saveAll(prev_observations, { useMasterKey: true });
 	}).then(function() {
 		console.log("All GCUR_OBSERVATION records with ObservationStatus being 1 have been succssfully changed to archived observations.");
 		
@@ -2552,7 +2045,7 @@ Parse.Cloud.define("finaliseDataOnParse", function(request, response) {
 			var currDateTime = new Date();
 			obs.set("FinalisedDate", currDateTime);
 		}
-		return Parse.Object.saveAll(curr_observations);
+		return Parse.Object.saveAll(curr_observations, { useMasterKey: true });
 	}).then(function(list) {
 		// All the objects were saved.
 		console.log("All current GCUR_OBSERVATION records with ObservationStatus being 0 have been succssfully updated to previous records.");
@@ -2567,7 +2060,7 @@ Parse.Cloud.define("finaliseDataOnParse", function(request, response) {
 			var abd = prev_adjustDistricts[i];
 			abd.set("status", 2);
 		}
-		return Parse.Object.saveAll(prev_adjustDistricts);
+		return Parse.Object.saveAll(prev_adjustDistricts, { useMasterKey: true });
 	}).then(function() {
 		console.log("All GCUR_ADJUST_DISTRICT records with status being 1 have been succssfully changed to archived records.");
 		
@@ -2583,7 +2076,7 @@ Parse.Cloud.define("finaliseDataOnParse", function(request, response) {
 			// Set current to previous
 			abd.set("status", 1);
 		}
-		return Parse.Object.saveAll(curr_adjustDistricts);
+		return Parse.Object.saveAll(curr_adjustDistricts, { useMasterKey: true });
 	}).then(function(list) {
 		console.log("All current GCUR_ADJUST_DISTRICT records with ObservationStatus being 0 have been succssfully updated to previous records.");
 		
@@ -2597,7 +2090,7 @@ Parse.Cloud.define("finaliseDataOnParse", function(request, response) {
 			var abl = prev_adjustLocations[i];
 			abl.set("status", 2);
 		}
-		return Parse.Object.saveAll(prev_adjustLocations);
+		return Parse.Object.saveAll(prev_adjustLocations, { useMasterKey: true });
 	}).then(function() {
 		console.log("All GCUR_ADJUST_LOCATION records with status being 1 have been succssfully changed to archived records.");
 		
@@ -2613,7 +2106,7 @@ Parse.Cloud.define("finaliseDataOnParse", function(request, response) {
 			// Set current to previous
 			abl.set("status", 1);
 		}
-		return Parse.Object.saveAll(curr_adjustLocations);
+		return Parse.Object.saveAll(curr_adjustLocations, { useMasterKey: true });
 	}).then(function(list) {
 		// All the objects were saved.
 		console.log("All current GCUR_ADJUST_LOCATION records with ObservationStatus being 0 have been succssfully updated to previous records.");
@@ -2629,8 +2122,6 @@ Parse.Cloud.define("finaliseDataOnParse", function(request, response) {
  * Retrieve all Finalise Date based on the "createdAt" column of the GCUR_FINALISEMODEL class
  */
 Parse.Cloud.define("getAllFinalisedDate", function(request, response) {
-	Parse.Cloud.useMasterKey();
-	
 	var finaliseModelList = [];
 	
 	var queryFinaliseModel = new Parse.Query("GCUR_FINALISEMODEL");
@@ -2666,8 +2157,6 @@ Parse.Cloud.define("getAllFinalisedDate", function(request, response) {
  * Get the downloadable observation report based on user-specified finalised model objectId
  */
 Parse.Cloud.define("getDataReport", function(request, response) {
-	Parse.Cloud.useMasterKey();
-	
 	var finalisedModelObjectId = request.params.finalisedModelObjectId;
 	
 	var returnedObsList = [];
@@ -2773,8 +2262,6 @@ Parse.Cloud.define("getDataReport", function(request, response) {
  * Retrieve the detail about a FinaliseModel object by its input objectId
  */
 Parse.Cloud.define("getFinaliseModelDetail", function(request, response) {
-	Parse.Cloud.useMasterKey();
-	
 	var inFinaliseModelObjId = null;
 	
 	console.log("Getting FinaliseModel Detail for ObjectId [" + request.params.finaliseModelObjId + "]");
@@ -2785,7 +2272,7 @@ Parse.Cloud.define("getFinaliseModelDetail", function(request, response) {
 	queryFinaliseModel.equalTo("objectId", inFinaliseModelObjId);
 	queryFinaliseModel.include("submittedBy");	// Retrieve _USER
 	queryFinaliseModel.limit(1000);
-	queryFinaliseModel.first().then(function(finaliseModelJob) {
+	queryFinaliseModel.first({ useMasterKey: true }).then(function(finaliseModelJob) {
 		var jobDetail = {};
 		
 		if (finaliseModelJob != undefined) {
@@ -2827,8 +2314,6 @@ Parse.Cloud.define("getFinaliseModelDetail", function(request, response) {
 Parse.Cloud.define("applyValidationByException", function(request, response) {
 	var startTime = new Date().getTime();
 	
-	Parse.Cloud.useMasterKey();
-	
 	var isValidationByException = false;
 	var countOfObsApplied = 0;
 	
@@ -2866,7 +2351,7 @@ Parse.Cloud.define("applyValidationByException", function(request, response) {
 		queryObservation.limit(1000);
 		queryObservation.notEqualTo("ObservationStatus", 2);	// only includes previous and current observations
 		queryObservation.ascending("ObservationStatus");		// 0 - current; 1 - previous
-		return queryObservation.find();
+		return queryObservation.find({ useMasterKey: true });
 	}).then(function(results) {
 		// results are JavaScript Array of GCUR_OBSERVATION objects for both current and previous weeks;
 		
@@ -3006,76 +2491,6 @@ Parse.Cloud.define("applyValidationByException", function(request, response) {
 		response.error("Error: " + error);
 	});
 });
-
-/*
-Parse.Cloud.define("finaliseAdjustByDistAndLocOnParse", function(request, response) {
-	Parse.Cloud.useMasterKey();
-	
-	// Change all GCUR_ADJUST_DISTRICT records with status being 1 to 2
-	queryPrev = new Parse.Query("GCUR_ADJUST_DISTRICT");
-	queryPrev.equalTo("status", 1);
-	queryPrev.limit(1000);
-	queryPrev.find().then(function(prev_adjustDistricts) {
-		for (var i = 0; i < prev_adjustDistricts.length; i ++) {
-			var abd = prev_adjustDistricts[i];
-			abd.set("status", 2);
-		}
-		return Parse.Object.saveAll(prev_adjustDistricts);
-	}).then(function() {
-		console.log("All GCUR_ADJUST_DISTRICT records with status being 1 have been succssfully changed to archived records.");
-		
-		// Find all current GCUR_ADJUST_DISTRICT records with status being 0
-		queryCurr = new Parse.Query("GCUR_ADJUST_DISTRICT");
-		queryCurr.equalTo("status", 0);
-		queryCurr.limit(1000);
-		return queryCurr.find();
-	}).then(function(curr_adjustDistricts) {
-		for (var i = 0; i < curr_adjustDistricts.length; i ++) {
-			var abd = curr_adjustDistricts[i];
-			
-			// Set current to previous
-			abd.set("status", 1);
-		}
-		return Parse.Object.saveAll(curr_adjustDistricts);
-	}).then(function(list) {
-		console.log("All current GCUR_ADJUST_DISTRICT records have been succssfully updated to previous records.");
-		
-		// Change all GCUR_ADJUST_LOCATION records with status being 1 to 2
-		queryPrev = new Parse.Query("GCUR_ADJUST_LOCATION");
-		queryPrev.equalTo("status", 1);
-		queryPrev.limit(1000);
-		return queryPrev.find();
-	}).then(function(prev_adjustLocations) {
-		for (var i = 0; i < prev_adjustLocations.length; i ++) {
-			var abl = prev_adjustLocations[i];
-			abl.set("status", 2);
-		}
-		return Parse.Object.saveAll(prev_adjustLocations);
-	}).then(function() {
-		console.log("All GCUR_ADJUST_LOCATION records with status being 1 have been succssfully changed to archived records.");
-		
-		// Find all current GCUR_ADJUST_LOCATION records with status being 0
-		queryCurr = new Parse.Query("GCUR_ADJUST_LOCATION");
-		queryCurr.equalTo("status", 0);
-		queryCurr.limit(1000);
-		return queryCurr.find();
-	}).then(function(curr_adjustLocations) {
-		for (var i = 0; i < curr_adjustLocations.length; i ++) {
-			var abl = curr_adjustLocations[i];
-			
-			// Set current to previous
-			abl.set("status", 1);
-		}
-		return Parse.Object.saveAll(curr_adjustLocations);
-	}).then(function(list) {
-		// All the objects were saved.
-		console.log("All current GCUR_ADJUST_LOCATION records have been succssfully updated to previous records.");
-		response.success();  //saveAll is now finished and we can properly exit with confidence :-)
-	}, function(error) {
-		response.error("Error: " + error.code + " " + error.message);
-	});
-});
-*/
 
 /**
  * An Underscore utility function to find elements in array that are not in another array;
