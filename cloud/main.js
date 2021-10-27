@@ -94,13 +94,13 @@ var validationRequestEmailHtml = '<!DOCTYPE html><html>' +
 		'<br>' + 
 		'<p>You can also access the "Help" button at the bottom of the main page.</p>' + 
 		'<br>' + 
-		'<p>If you have any questions, please contact us (Alex - 03 8822 8060; Rachel - 03 9262 8607).</p>' + 
+		'<p>If you have any questions, please contact us (Alex - <a href="mailto:a.chen@cfa.vic.gov.au" target="_top">a.chen@cfa.vic.gov.au</a>; Danni - <a href="mailto:danielle.wright@cfa.vic.gov.au" target="_top">danielle.wright@cfa.vic.gov.au</a>).</p>' + 
 		'<br>' + 
 		'<p>Kind Regards,</p>' + 
 		'<br>' + 
 		'<p>The NEMP Grassland Curing Team</p>' + 
 		'<br>' + 
-		'<table><tr><td width="30%"><img src="http://www.cfa.vic.gov.au/img/logo.png" width="64" height="64" alt="CFA_LOGO" /></td>' + 
+		'<table><tr><td width="30%"><img src="https://www.cfa.vic.gov.au/Images/UserUploadedImages/11/CFA_logo.png" width="64" height="64" alt="CFA_LOGO" /></td>' + 
 		'<td><p style="color:#C00000; font-weight: bold;">NEMP Grassland Curing Team</p><p>CFA HQ - Fire & Emergency Management - 8 Lakeside Drive, Burwood East, Victoria, 3151</p>' + 
 		'<p>E: <a href="mailto:' + CFA_NEMP_EMAIL + '" target="_top">' + CFA_NEMP_EMAIL + '</a></p></td></tr></table>' + 
 		'<br>' + 
